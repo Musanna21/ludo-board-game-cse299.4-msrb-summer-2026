@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ludo Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>Ludo Game</h1>
+    
+    <div id="game-container">
+        <div id="board">
+            <div class="home-base blue-home" style="grid-area: 1 / 1 / 7 / 7;">
+                <div class="pocket"></div><div class="pocket"></div>
+                <div class="pocket"></div><div class="pocket"></div>
+            </div>
+            <div class="home-base red-home" style="grid-area: 1 / 10 / 7 / 16;">
+                <div class="pocket"></div><div class="pocket"></div>
+                <div class="pocket"></div><div class="pocket"></div>
+            </div>
+            <div class="home-base yellow-home" style="grid-area: 10 / 1 / 16 / 7;">
+                <div class="pocket"></div><div class="pocket"></div>
+                <div class="pocket"></div><div class="pocket"></div>
+            </div>
+            <div class="home-base green-home" style="grid-area: 10 / 10 / 16 / 16;">
+                <div class="pocket"></div><div class="pocket"></div>
+                <div class="pocket"></div><div class="pocket"></div>
+            </div>
+
+            <div class="center-goal" style="grid-area: 7 / 7 / 10 / 10;">
+                <div class="triangle red-tri"></div>
+                <div class="triangle green-tri"></div>
+                <div class="triangle yellow-tri"></div>
+                <div class="triangle blue-tri"></div>
+            </div>
+
+            <div id="cell-11" class="cell" style="grid-area: 1 / 7;"></div><div id="cell-12" class="cell" style="grid-area: 1 / 8;"></div><div id="cell-13" class="cell" style="grid-area: 1 / 9;"></div>
+            <div id="cell-10" class="cell" style="grid-area: 2 / 7;"></div><div id="cell-red-home-1" class="cell red-path" style="grid-area: 2 / 8;"></div><div id="cell-14" class="cell red-path" style="grid-area: 2 / 9;">➜</div>
+            <div id="cell-9" class="cell" style="grid-area: 3 / 7;"></div><div id="cell-red-home-2" class="cell red-path" style="grid-area: 3 / 8;"></div><div id="cell-15" class="cell" style="grid-area: 3 / 9;"></div>
+            <div id="cell-8" class="cell" style="grid-area: 4 / 7;"></div><div id="cell-red-home-3" class="cell red-path" style="grid-area: 4 / 8;"></div><div id="cell-16" class="cell" style="grid-area: 4 / 9;"></div>
+            <div id="cell-7" class="cell" style="grid-area: 5 / 7;"></div><div id="cell-red-home-4" class="cell red-path" style="grid-area: 5 / 8;"></div><div id="cell-17" class="cell" style="grid-area: 5 / 9;"></div>
+            <div id="cell-6" class="cell" style="grid-area: 6 / 7;"></div><div id="cell-red-home-5" class="cell red-path" style="grid-area: 6 / 8;"></div><div id="cell-18" class="cell" style="grid-area: 6 / 9;"></div>
+
+            <div id="cell-19" class="cell" style="grid-area: 7 / 10;"></div><div id="cell-20" class="cell" style="grid-area: 7 / 11;"></div><div id="cell-21" class="cell" style="grid-area: 7 / 12;"></div><div id="cell-22" class="cell" style="grid-area: 7 / 13;"></div><div id="cell-23" class="cell" style="grid-area: 7 / 14;"></div><div id="cell-24" class="cell" style="grid-area: 7 / 15;"></div>
+            <div id="cell-green-home-5" class="cell green-path" style="grid-area: 8 / 10;"></div><div id="cell-green-home-4" class="cell green-path" style="grid-area: 8 / 11;"></div><div id="cell-green-home-3" class="cell green-path" style="grid-area: 8 / 12;"></div><div id="cell-green-home-2" class="cell green-path" style="grid-area: 8 / 13;"></div><div id="cell-green-home-1" class="cell green-path" style="grid-area: 8 / 14;"></div><div id="cell-25" class="cell" style="grid-area: 8 / 16;"></div>
+            <div id="cell-30" class="cell" style="grid-area: 9 / 10;"></div><div id="cell-29" class="cell" style="grid-area: 9 / 11;"></div><div id="cell-28" class="cell" style="grid-area: 9 / 12;"></div><div id="cell-27" class="cell" style="grid-area: 9 / 13;"></div><div id="cell-26" class="cell green-path" style="grid-area: 9 / 14;">➔</div><div id="cell-31" class="cell" style="grid-area: 9 / 15;"></div>
+
+            <div id="cell-44" class="cell" style="grid-area: 10 / 7;"></div><div id="cell-yellow-home-5" class="cell yellow-path" style="grid-area: 10 / 8;"></div><div id="cell-32" class="cell" style="grid-area: 10 / 9;"></div>
+            <div id="cell-45" class="cell" style="grid-area: 11 / 7;"></div><div id="cell-yellow-home-4" class="cell yellow-path" style="grid-area: 11 / 8;"></div><div id="cell-33" class="cell" style="grid-area: 11 / 9;"></div>
+            <div id="cell-46" class="cell" style="grid-area: 12 / 7;"></div><div id="cell-yellow-home-3" class="cell yellow-path" style="grid-area: 12 / 8;"></div><div id="cell-34" class="cell" style="grid-area: 12 / 9;"></div>
+            <div id="cell-47" class="cell" style="grid-area: 13 / 7;"></div><div id="cell-yellow-home-2" class="cell yellow-path" style="grid-area: 13 / 8;"></div><div id="cell-35" class="cell" style="grid-area: 13 / 9;"></div>
+            <div id="cell-39" class="cell yellow-path" style="grid-area: 14 / 7;">➔</div><div id="cell-yellow-home-1" class="cell yellow-path" style="grid-area: 14 / 8;"></div><div id="cell-36" class="cell" style="grid-area: 14 / 9;"></div>
+            <div id="cell-41" class="cell" style="grid-area: 15 / 7;"></div><div id="cell-40" class="cell" style="grid-area: 15 / 8;"></div><div id="cell-37" class="cell" style="grid-area: 15 / 9;"></div>
+
+            <div id="cell-5" class="cell" style="grid-area: 7 / 1;"></div><div id="cell-0" class="cell blue-path" style="grid-area: 7 / 2;">➔</div><div id="cell-1" class="cell" style="grid-area: 7 / 3;"></div><div id="cell-2" class="cell" style="grid-area: 7 / 4;"></div><div id="cell-3" class="cell" style="grid-area: 7 / 5;"></div><div id="cell-4" class="cell" style="grid-area: 7 / 6;"></div>
+            <div id="cell-51" class="cell" style="grid-area: 8 / 1;"></div><div id="cell-blue-home-1" class="cell blue-path" style="grid-area: 8 / 2;"></div><div id="cell-blue-home-2" class="cell blue-path" style="grid-area: 8 / 3;"></div><div id="cell-blue-home-3" class="cell blue-path" style="grid-area: 8 / 4;"></div><div id="cell-blue-home-4" class="cell blue-path" style="grid-area: 8 / 5;"></div><div id="cell-blue-home-5" class="cell blue-path" style="grid-area: 8 / 6;"></div>
+            <div id="cell-50" class="cell" style="grid-area: 9 / 1;"></div><div id="cell-49" class="cell" style="grid-area: 9 / 2;"></div><div id="cell-48" class="cell" style="grid-area: 9 / 3;"></div><div id="cell-47" class="cell" style="grid-area: 9 / 4;"></div><div id="cell-46" class="cell" style="grid-area: 9 / 5;"></div><div id="cell-45" class="cell" style="grid-area: 9 / 6;"></div>
+        </div>
+
+        <div id="controls">
+            <div id="status">Turn: <span id="current-player" class="turn-blue">BLUE</span></div>
+            <div id="dice">⚀</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
