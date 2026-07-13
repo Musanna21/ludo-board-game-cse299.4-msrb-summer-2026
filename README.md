@@ -1,3 +1,4 @@
+```
 ludo-multiplayer-arena/
 │
 ├── server.js                 <-- Main App Entry Point (Integrates all backend systems)
@@ -16,3 +17,4 @@ ludo-multiplayer-arena/
     ├── index.html            (Welcome Portal Hub)
     ├── login.html            (Authentication Form & Password Reset Modal Hooks)
     └── signup.html           (New Player Registration Form Layout)
+```
