@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply font-body bg-board-bg text-board-cream;
+  background-image: radial-gradient(circle at 20% 10%, #232a63 0%, #161a3a 55%);
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: 'Baloo 2', cursive;
+}
+
+::selection {
+  background: #f4b53e;
+  color: #161a3a;
+}
+
+/* Visible keyboard focus ring everywhere */
+:focus-visible {
+  outline: 2px solid #f4b53e;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
