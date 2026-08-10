@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ludo Online</title>
+  <style>
+    :root { --primary: #2563eb; --bg: #f8fafc; --text: #0f172a; }
+    body { 
+      font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); 
+      display: flex; flex-direction: column; min-height: 100vh; margin: 0; 
+      align-items: center; justify-content: center; 
+    }
+    .card { 
+      background: white; padding: 3rem 2rem; border-radius: 8px; 
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); text-align: center; 
+      max-width: 400px; width: 90%; 
+    }
+    h1 { margin-top: 0; color: var(--primary); }
+    button { 
+      background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; 
+      border-radius: 4px; font-size: 1rem; cursor: pointer; width: 100%; margin: 0.5rem 0; 
+      transition: all 0.2s; 
+    }
+    button:hover { opacity: 0.9; }
+    .btn-secondary { background: #e2e8f0; color: #0f172a; }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .btn-guest { background: transparent; color: var(--text); border: 1px solid #cbd5e1; margin-top: 1rem; }
+    .btn-guest:hover { background: #f1f5f9; }
+    .divider { margin: 1rem 0; color: #94a3b8; font-size: 0.875rem; display: flex; align-items: center; }
+    .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid #e2e8f0; }
+    .divider:not(:empty)::before { margin-right: .5em; }
+    .divider:not(:empty)::after { margin-left: .5em; }
+  </style>
+</head>
+
+<body>
+  <main class="card">
+    <h1>Ludo Online</h1>
+    <p>Play the classic board game with friends.</p>
+
+    <button onclick="window.location.href='login.html'">Login</button>
+    <button class="btn-secondary" onclick="window.location.href='signup.html'">Sign Up</button>
+    
+    <div class="divider">OR</div>
+    
+    <button class="btn-guest" onclick="playAsGuest()">Play as Guest</button>
+  </main>
+
+  <script>
+    // Check if user is already logged in or has an active guest session
+    window.onload = () => {
+      const session = localStorage.getItem('ludo_current_user');
+      if (session) {
+        window.location.href = 'welcome.html'; 
+      }
+    };
+
+    function playAsGuest() {
+      // Generate a UUID for the guest
+      const uuid = crypto.randomUUID ? crypto.randomUUID() : 'guest_' + Math.random().toString(36).substring(2, 15);
+      
+      const guestSession = {
+        type: 'guest',
+        id: uuid
+      };
+      
+      localStorage.setItem('ludo_current_user', JSON.stringify(guestSession));
+      window.location.href = 'welcome.html';
+    }
+  </script>
+</body>
+
+</html>

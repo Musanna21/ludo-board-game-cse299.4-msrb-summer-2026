@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Ludo Online</title>
+
+    <!-- Authentication Guard: Ensures user is logged in or a guest -->
+    <script>
+      const session = localStorage.getItem('ludo_current_user');
+      if (!session) {
+        window.location.href = 'index.html';
+      }
+    </script>
+
+    <style>
+      :root {
+        --primary: #ea580c; --primary-dark: #c2410c; --bg: #fff7ed; --text: #1c1917;
+        --red: #ef4444; --green: #22c55e; --yellow: #eab308; --blue: #3b82f6;
+      }
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, sans-serif; background: var(--bg); color: var(--text);
+        display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+        min-height: 100vh; margin: 0; padding: 1.25rem;
+      }
+      header { text-align: center; margin-bottom: 1rem; }
+      h1 { margin: 0 0 0.35rem 0; color: var(--primary); font-size: 1.6rem; letter-spacing: -0.02em; }
+      .user-info { font-size: 0.85rem; color: #78716c; }
+
+      .layout { display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: center; width: 100%; max-width: 920px; }
+
+      .card {
+        background: white; border-radius: 16px; box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.28);
+      }
+
+      .game-container {
+        display: flex; flex-direction: column; align-items: center; gap: 1rem;
+        padding: 1.5rem; max-width: 480px; width: 100%;
+      }
+
+      #boardSvg { width: 100%; max-width: 420px; height: auto; filter: drop-shadow(0 6px 16px rgb(0 0 0 / 0.12)); }
+      .ring-cell { fill: #ffffff; stroke: #e7e5e4; stroke-width: 1.5; }
+      .home-cell { opacity: 0.6; }
+      .yard-box { fill-opacity: 0.16; stroke-width: 3; }
+      .token { cursor: default; stroke: #1c1917; stroke-width: 1.5; filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.35)); }
+      .token.movable { cursor: pointer; }
+      .token-highlight { fill: none; stroke-width: 2.5; stroke-dasharray: 3 2; animation: spin 3s linear infinite; transform-box: fill-box; transform-origin: center; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .side-panel { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 270px; }
+      .panel-box { padding: 1.1rem; }
+      .panel-box h3 { margin: 0 0 0.6rem 0; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: #a8a29e; }
+      .player-row {
+        display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 8px;
+        font-size: 0.9rem; margin-bottom: 0.3rem; transition: background 0.15s;
+      }
+      .player-row.active { background: #fff1e6; font-weight: 700; }
+      .player-row .badge { margin-left: auto; font-size: 0.7rem; color: var(--primary); }
+      .color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.15); }
+      .dot-red { background: var(--red); } .dot-green { background: var(--green); }
+      .dot-yellow { background: var(--yellow); } .dot-blue { background: var(--blue); }
+
+      .controls { text-align: center; width: 100%; }
+      button {
+        background: var(--primary); color: white; border: none; padding: 0.65rem 1.3rem;
+        border-radius: 8px; font-size: 1rem; cursor: pointer; transition: transform 0.1s, background 0.15s; font-weight: 600;
+      }
+      button:hover:not(:disabled) { background: var(--primary-dark); }
+      button:active:not(:disabled) { transform: scale(0.97); }
+      button:disabled { background: #d6d3d1; cursor: not-allowed; }
+
+      .dice-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+      .dice-face {
+        width: 58px; height: 58px; background: white; border-radius: 12px;
+        box-shadow: 0 6px 14px -4px rgb(0 0 0 / 0.35), inset 0 0 0 1px #e7e5e4;
+        display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+        padding: 8px; gap: 2px;
+      }
+      .pip { border-radius: 50%; background: transparent; }
+      .pip.on { background: #1c1917; }
+      .turn-banner { font-size: 1rem; font-weight: 700; }
+      .turn-banner .tag { font-weight: 400; color: #78716c; font-size: 0.8rem; }
+
+      .status-box {
+        background: #fafaf9; padding: 0.6rem 0.75rem; border-radius: 8px; font-size: 0.82rem; width: 100%;
+        text-align: left; max-height: 110px; overflow-y: auto; border: 1px solid #f0efee; line-height: 1.5;
+      }
+
+      .modal-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(28,25,23,0.65);
+        align-items: center; justify-content: center; z-index: 50; padding: 1rem;
+      }
+      .modal-card { padding: 2rem; text-align: center; max-width: 340px; width: 100%; }
+
+      /* ---- Remote lobby styling ---- */
+      .lobby-wrap { max-width: 440px; width: 100%; padding: 2rem; text-align: center; }
+      .lobby-wrap h2 { margin-top: 0; color: var(--primary); }
+      .lobby-wrap textarea {
+        width: 100%; min-height: 90px; font-family: ui-monospace, monospace; font-size: 0.75rem;
+        padding: 0.6rem; border-radius: 8px; border: 1px solid #d6d3d1; resize: vertical;
+      }
+      .lobby-wrap input[type="text"] {
+        width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #d6d3d1; font-size: 0.95rem;
+      }
+      .lobby-step { text-align: left; margin: 1rem 0; }
+      .lobby-step label { font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 0.35rem; }
+      .roster-row {
+        display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; border-radius: 8px;
+        background: #fafaf9; margin-bottom: 0.3rem; font-size: 0.9rem;
+      }
+      .status-pill {
+        display: inline-block; font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 999px;
+        background: #fff1e6; color: var(--primary); margin-bottom: 0.75rem;
+      }
+      .copy-btn { background: #f5f5f4; color: #1c1917; font-size: 0.8rem; padding: 0.4rem 0.8rem; margin-top: 0.4rem; }
+      .copy-btn:hover:not(:disabled) { background: #e7e5e4; }
+    </style>
+</head>
+<body>
+
+    <header>
+      <h1>Ludo Online Board</h1>
+      <div class="user-info" id="userInfo">Loading player profile...</div>
+    </header>
+
+    <!-- Remote lobby (host/join code exchange) - shown only in remote mode, before the game starts -->
+    <div class="card lobby-wrap" id="remoteLobby" style="display:none;">
+      <div id="lobbyContent"></div>
+    </div>
+
+    <main class="layout" id="gameLayout" style="display:none;">
+      <div class="card game-container">
+        <div class="turn-banner" id="turnBanner"></div>
+
+        <svg id="boardSvg" viewBox="0 0 600 600" role="img" aria-label="Ludo board"></svg>
+
+        <div class="controls dice-wrap">
+          <div class="dice-face" id="diceFace"></div>
+          <button id="rollBtn">Roll Dice</button>
+        </div>
+
+        <div class="status-box" id="logBox">&gt; Game initialized. Ready to roll.</div>
+      </div>
+
+      <div class="side-panel">
+        <div class="card panel-box">
+          <h3>Players</h3>
+          <div id="playerList"></div>
+        </div>
+        <div class="card panel-box">
+          <h3>How to play</h3>
+          <p style="font-size:0.8rem; color:#57534e; margin:0; line-height:1.5;">
+            Roll a 6 to bring a token out of your base. Land on an opponent
+            (not on a ★ safe square) to send it home. Rolling a 6, capturing,
+            or reaching home earns another roll. Get all 4 tokens home to win.
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <div class="modal-overlay" id="winModal">
+      <div class="card modal-card">
+        <h2 id="winMessage" style="margin-top:0; color:var(--primary);"></h2>
+        <button onclick="window.location.href='welcome.html'">Back to lobby</button>
+      </div>
+    </div>
+
+    <script>
+      /* =========================================================================
+         SECTION: Ludo rule engine (server-authoritative style, runs locally or
+         on the hosting peer - never trusts a joiner's browser with the rules).
+      ========================================================================= */
+      const ENGINE = (function () {
+        const COLORS = ['red', 'green', 'yellow', 'blue'];
+        const START_OFFSET = { red: 0, green: 13, yellow: 26, blue: 39 };
+        const SAFE_SQUARES = [0, 8, 13, 21, 26, 34, 39, 47];
+        const TOKENS_PER_PLAYER = 4;
+        const HOME_ENTRY_STEPS = 51;
+        const FINAL_STEP = 57;
+        const MAX_DICE = 6;
+
+        class LudoGame {
+          constructor(playerColors) {
+            if (!playerColors || playerColors.length < 2 || playerColors.length > 4) {
+              throw new Error('Ludo requires 2 to 4 players');
+            }
+            this.playerColors = playerColors;
+            this.currentPlayerIndex = 0;
+            this.lastDice = null;
+            this.consecutiveSixes = 0;
+            this.status = 'in-progress';
+            this.winner = null;
+            this.finishOrder = [];
+            this.tokens = {};
+            playerColors.forEach((color) => {
+              this.tokens[color] = Array.from({ length: TOKENS_PER_PLAYER }, () => ({ steps: 0 }));
+            });
+          }
+          get currentColor() { return this.playerColors[this.currentPlayerIndex]; }
+          static globalSquare(color, steps) {
+            if (steps < 1 || steps > HOME_ENTRY_STEPS) return null;
+            return (START_OFFSET[color] + steps - 1) % 52;
+          }
+          legalMoves(dice) {
+            const color = this.currentColor;
+            const moves = [];
+            this.tokens[color].forEach((token, idx) => {
+              if (token.steps === FINAL_STEP) return;
+              if (token.steps === 0) { if (dice === MAX_DICE) moves.push(idx); return; }
+              if (token.steps + dice <= FINAL_STEP) moves.push(idx);
+            });
+            return moves;
+          }
+          rollDice() {
+            if (this.status !== 'in-progress') throw new Error('Game is already finished');
+            if (this.lastDice !== null) throw new Error('Already rolled - move a token first');
+            const dice = 1 + Math.floor(Math.random() * MAX_DICE);
+            this.lastDice = dice;
+            this.consecutiveSixes = dice === MAX_DICE ? this.consecutiveSixes + 1 : 0;
+
+            if (this.consecutiveSixes === 3) {
+              this.consecutiveSixes = 0;
+              this.lastDice = null;
+              this._advanceTurn();
+              return { dice, legalMoves: [], turnPassed: true, forfeited: true };
+            }
+            const moves = this.legalMoves(dice);
+            if (moves.length === 0) {
+              this.lastDice = null;
+              this._advanceTurn();
+              return { dice, legalMoves: [], turnPassed: true, forfeited: false };
+            }
+            return { dice, legalMoves: moves, turnPassed: false };
+          }
+          moveToken(tokenIndex) {
+            if (this.status !== 'in-progress') throw new Error('Game is already finished');
+            if (this.lastDice === null) throw new Error('Must roll the dice before moving');
+            const color = this.currentColor;
+            const dice = this.lastDice;
+            const legal = this.legalMoves(dice);
+            if (!legal.includes(tokenIndex)) throw new Error('Illegal move for the current dice roll');
+
+            const token = this.tokens[color][tokenIndex];
+            token.steps = token.steps === 0 ? 1 : token.steps + dice;
+
+            let captured = [];
+            if (token.steps <= HOME_ENTRY_STEPS) {
+              captured = this._resolveCaptures(color, LudoGame.globalSquare(color, token.steps));
+            }
+            const reachedHome = token.steps === FINAL_STEP;
+            const finishedGame = this._checkWin(color);
+            const grantsExtraTurn = dice === MAX_DICE || captured.length > 0 || reachedHome;
+            this.lastDice = null;
+            if (!finishedGame && !grantsExtraTurn) this._advanceTurn();
+
+            return { color, tokenIndex, steps: token.steps, captured, reachedHome, extraTurn: grantsExtraTurn && !finishedGame, finishedGame, winner: this.winner };
+          }
+          _resolveCaptures(movedColor, square) {
+            if (square === null || SAFE_SQUARES.includes(square)) return [];
+            const captured = [];
+            this.playerColors.forEach((otherColor) => {
+              if (otherColor === movedColor) return;
+              this.tokens[otherColor].forEach((otherToken, idx) => {
+                if (otherToken.steps === 0 || otherToken.steps > HOME_ENTRY_STEPS) return;
+                if (LudoGame.globalSquare(otherColor, otherToken.steps) === square) {
+                  otherToken.steps = 0;
+                  captured.push({ color: otherColor, tokenIndex: idx });
+                }
+              });
+            });
+            return captured;
+          }
+          _checkWin(color) {
+            const allHome = this.tokens[color].every((t) => t.steps === FINAL_STEP);
+            if (allHome && !this.finishOrder.includes(color)) {
+              this.finishOrder.push(color);
+              if (!this.winner) { this.winner = color; this.status = 'finished'; return true; }
+            }
+            return false;
+          }
+          _advanceTurn() {
+            this.consecutiveSixes = 0;
+            let next = this.currentPlayerIndex;
+            for (let i = 0; i < this.playerColors.length; i += 1) {
+              next = (next + 1) % this.playerColors.length;
+              if (!this.finishOrder.includes(this.playerColors[next])) { this.currentPlayerIndex = next; return; }
+            }
+          }
+          serialize() {
+            return {
+              playerColors: this.playerColors, currentColor: this.currentColor, lastDice: this.lastDice,
+              tokens: JSON.parse(JSON.stringify(this.tokens)), status: this.status, winner: this.winner,
+            };
+          }
+        }
+        return { LudoGame, COLORS, START_OFFSET, SAFE_SQUARES, FINAL_STEP };
+      })();
+
+      /* =========================================================================
+         SECTION: Board geometry - every coordinate computed parametrically.
+      ========================================================================= */
+      const BOARD = (function () {
+        const RING_MIN = 120, RING_MAX = 480, CELLS_PER_SIDE = 13;
+        const STEP = (RING_MAX - RING_MIN) / CELLS_PER_SIDE;
+        const COLOR_ORDER = ['red', 'green', 'yellow', 'blue'];
+        const START_OFFSET = { red: 0, green: 13, yellow: 26, blue: 39 };
+
+        function ringPoint(i) {
+          const side = Math.floor(i / CELLS_PER_SIDE), t = i % CELLS_PER_SIDE;
+          if (side === 0) return { x: RING_MIN + STEP * t, y: RING_MIN };
+          if (side === 1) return { x: RING_MAX, y: RING_MIN + STEP * t };
+          if (side === 2) return { x: RING_MAX - STEP * t, y: RING_MAX };
+          return { x: RING_MIN, y: RING_MAX - STEP * t };
+        }
+        const RING_POINTS = Array.from({ length: 52 }, (_, i) => ringPoint(i));
+        const SAFE_RING_INDEXES = [0, 8, 13, 21, 26, 34, 39, 47];
+        const CENTER = { x: 300, y: 300 };
+
+        function homeColumn(color) {
+          const pts = [];
+          for (let i = 1; i <= 5; i += 1) {
+            const t = i / 6;
+            let x, y;
+            if (color === 'red') { x = CENTER.x; y = RING_MIN + (CENTER.y - RING_MIN) * t; }
+            else if (color === 'yellow') { x = CENTER.x; y = RING_MAX - (RING_MAX - CENTER.y) * t; }
+            else if (color === 'blue') { x = RING_MIN + (CENTER.x - RING_MIN) * t; y = CENTER.y; }
+            else { x = RING_MAX - (RING_MAX - CENTER.x) * t; y = CENTER.y; }
+            pts.push({ x, y });
+          }
+          return pts;
+        }
+        const HOME_COLUMNS = Object.fromEntries(COLOR_ORDER.map((c) => [c, homeColumn(c)]));
+
+        const YARD_CENTER = { red: { x: 60, y: 60 }, green: { x: 540, y: 60 }, yellow: { x: 540, y: 540 }, blue: { x: 60, y: 540 } };
+        const YARD_SLOT_OFFSETS = [{ dx: -25, dy: -25 }, { dx: 25, dy: -25 }, { dx: -25, dy: 25 }, { dx: 25, dy: 25 }];
+        const YARD_SLOTS = Object.fromEntries(COLOR_ORDER.map((color) => [
+          color, YARD_SLOT_OFFSETS.map((o) => ({ x: YARD_CENTER[color].x + o.dx, y: YARD_CENTER[color].y + o.dy })),
+        ]));
+        const YARD_BOUNDS = { red: { x: 0, y: 0 }, green: { x: RING_MAX, y: 0 }, yellow: { x: RING_MAX, y: RING_MAX }, blue: { x: 0, y: RING_MAX } };
+        const YARD_SIZE = RING_MIN;
+
+        function tokenPosition(color, steps) {
+          if (steps === 0) return null;
+          if (steps <= 51) return RING_POINTS[(START_OFFSET[color] + steps - 1) % 52];
+          if (steps <= 56) return HOME_COLUMNS[color][steps - 52];
+          return CENTER;
+        }
+        return { RING_POINTS, SAFE_RING_INDEXES, HOME_COLUMNS, YARD_SLOTS, YARD_BOUNDS, YARD_SIZE, COLOR_ORDER, tokenPosition };
+      })();
+
+      const FILL = { red: '#ef4444', green: '#22c55e', yellow: '#eab308', blue: '#3b82f6' };
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      function svgEl(tag, attrs) {
+        const node = document.createElementNS(SVG_NS, tag);
+        Object.entries(attrs || {}).forEach(([k, v]) => node.setAttribute(k, v));
+        return node;
+      }
+
+      /* =========================================================================
+         SECTION: Session + mode detection
+      ========================================================================= */
+      const userData = JSON.parse(localStorage.getItem('ludo_current_user'));
+      document.getElementById('userInfo').textContent = userData.type === 'guest'
+        ? `Playing as Guest (${userData.id.substring(0, 6)})`
+        : `Playing as User: ${userData.username}`;
+      const myDisplayName = userData.type === 'guest' ? `Guest ${userData.id.substring(0, 6)}` : userData.username;
+
+      const urlParams = new URLSearchParams(location.search);
+      const urlMode = urlParams.get('mode'); // 'host' | 'join' | null
+      const localPlayers = JSON.parse(localStorage.getItem('ludo_local_players') || 'null');
+
+      let MODE; // 'local' | 'host' | 'join'
+      if (urlMode === 'host' || urlMode === 'join') MODE = urlMode;
+      else if (localPlayers && localPlayers.length >= 2) MODE = 'local';
+      else window.location.href = 'welcome.html';
+
+      /* =========================================================================
+         SECTION: Shared game/UI state - works the same for local play, hosting,
+         and joining. `currentState` is always what's rendered; `pendingLegalMoves`
+         is always what's currently clickable.
+      ========================================================================= */
+      let players = [];       // [{ name, color }]
+      let game = null;        // LudoGame instance - exists locally, or on the host only
+      let myColor = null;     // which color THIS browser controls (null = local pass-and-play, anyone can act)
+      let currentState = null;
+      let pendingLegalMoves = [];
+      let rolling = false;
+      let lastKnownDice = 0;
+
+      function syncFromGame() {
+        currentState = game.serialize();
+      }
+
+      /* =========================================================================
+         SECTION: Board rendering
+      ========================================================================= */
+      function buildStaticBoard() {
+        const svg = document.getElementById('boardSvg');
+        svg.innerHTML = '';
+        svg.appendChild(svgEl('rect', { width: 600, height: 600, rx: 22, fill: '#fefaf5' }));
+
+        BOARD.COLOR_ORDER.forEach((color) => {
+          svg.appendChild(svgEl('rect', {
+            class: 'yard-box', x: BOARD.YARD_BOUNDS[color].x + 10, y: BOARD.YARD_BOUNDS[color].y + 10,
+            width: BOARD.YARD_SIZE - 20, height: BOARD.YARD_SIZE - 20, rx: 18, fill: FILL[color], stroke: FILL[color],
+          }));
+        });
+
+        const hub = svgEl('g', {});
+        hub.appendChild(svgEl('polygon', { points: '300,220 380,300 300,380 220,300', fill: '#fefaf5', stroke: '#44403c', 'stroke-width': 2 }));
+        hub.appendChild(svgEl('polygon', { points: '300,300 380,300 300,220', fill: FILL.green, 'fill-opacity': 0.88 }));
+        hub.appendChild(svgEl('polygon', { points: '300,300 380,300 300,380', fill: FILL.yellow, 'fill-opacity': 0.88 }));
+        hub.appendChild(svgEl('polygon', { points: '300,300 220,300 300,380', fill: FILL.blue, 'fill-opacity': 0.88 }));
+        hub.appendChild(svgEl('polygon', { points: '300,300 220,300 300,220', fill: FILL.red, 'fill-opacity': 0.88 }));
+        svg.appendChild(hub);
+
+        BOARD.COLOR_ORDER.forEach((color) => {
+          BOARD.HOME_COLUMNS[color].forEach((p) => {
+            svg.appendChild(svgEl('rect', { class: 'home-cell', x: p.x - 13, y: p.y - 13, width: 26, height: 26, fill: FILL[color], stroke: FILL[color] }));
+          });
+        });
+
+        BOARD.RING_POINTS.forEach((p, i) => {
+          svg.appendChild(svgEl('rect', { class: 'ring-cell', x: p.x - 13, y: p.y - 13, width: 26, height: 26, rx: 3 }));
+          if (BOARD.SAFE_RING_INDEXES.includes(i)) {
+            const star = svgEl('text', { x: p.x, y: p.y + 5, 'text-anchor': 'middle', 'font-size': 14, fill: '#d6d3d1' });
+            star.textContent = '★';
+            svg.appendChild(star);
+          }
+        });
+
+        svg.appendChild(svgEl('g', { id: 'tokenLayer' }));
+      }
+
+      function canActAsCurrentPlayer() {
+        if (!currentState) return false;
+        if (myColor === null) return true; // local pass-and-play: whoever is at the keyboard
+        return myColor === currentState.currentColor;
+      }
+
+      function renderTokens() {
+        const layer = document.getElementById('tokenLayer');
+        layer.innerHTML = '';
+        if (!currentState) return;
+        const iCanAct = canActAsCurrentPlayer();
+
+        BOARD.COLOR_ORDER.forEach((color) => {
+          if (!currentState.tokens[color]) return;
+          currentState.tokens[color].forEach((token, idx) => {
+            const canMove = iCanAct && color === currentState.currentColor && pendingLegalMoves.includes(idx);
+            const pos = token.steps === 0 ? BOARD.YARD_SLOTS[color][idx] : BOARD.tokenPosition(color, token.steps);
+            if (!pos) return;
+            const g = svgEl('g', { transform: `translate(${pos.x}, ${pos.y})`, class: canMove ? 'token movable' : 'token' });
+            if (canMove) g.appendChild(svgEl('circle', { class: 'token-highlight', r: 14, stroke: FILL[color] }));
+            g.appendChild(svgEl('circle', { class: 'token', r: 10, fill: FILL[color] }));
+            g.appendChild(svgEl('circle', { r: 4, fill: '#ffffff', 'fill-opacity': 0.9 }));
+            if (canMove) g.addEventListener('click', () => requestMove(idx));
+            layer.appendChild(g);
+          });
+        });
+      }
+
+      function renderPlayerPanel() {
+        const list = document.getElementById('playerList');
+        list.innerHTML = '';
+        players.forEach((p) => {
+          const row = document.createElement('div');
+          row.className = 'player-row' + (currentState && p.color === currentState.currentColor ? ' active' : '');
+          const youTag = myColor === p.color ? '<span class="badge">you</span>' : '';
+          row.innerHTML = `<span class="color-dot dot-${p.color}"></span><span>${escapeHtml(p.name)}</span>${youTag}`;
+          list.appendChild(row);
+        });
+      }
+
+      function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+      }
+
+      function currentPlayerName() {
+        if (!currentState) return '';
+        const p = players.find((pl) => pl.color === currentState.currentColor);
+        return p ? p.name : currentState.currentColor;
+      }
+
+      function updateTurnBanner() {
+        if (!currentState) return;
+        const mine = canActAsCurrentPlayer();
+        document.getElementById('turnBanner').innerHTML =
+          `${escapeHtml(currentPlayerName())}'s turn <span class="tag">(${currentState.currentColor}${mine ? ' - you' : ''})</span>`;
+      }
+
+      // ---- Dice face (real pip layout + a short roll animation that always
+      // finishes ON the true result, so it never looks stuck or fake) ----
+      const PIP_LAYOUTS = {
+        1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
+      };
+      function renderDiceFace(value) {
+        const face = document.getElementById('diceFace');
+        face.innerHTML = '';
+        const on = new Set(PIP_LAYOUTS[value] || []);
+        for (let i = 0; i < 9; i += 1) {
+          const pip = document.createElement('div');
+          pip.className = 'pip' + (on.has(i) ? ' on' : '');
+          face.appendChild(pip);
+        }
+      }
+      renderDiceFace(0);
+
+      function logMessage(msg) {
+        const logBox = document.getElementById('logBox');
+        logBox.innerHTML += `<br>&gt; ${msg}`;
+        logBox.scrollTop = logBox.scrollHeight;
+      }
+
+      function renderAll() {
+        renderDiceFace(lastKnownDice);
+        renderTokens();
+        renderPlayerPanel();
+        updateTurnBanner();
+        updateRollButton();
+      }
+
+      // The core bug fix: the Roll button is disabled the moment there's a
+      // pending dice value awaiting a move, while mid-animation, when it's
+      // not your turn, or once the game is over - so it can never be spammed
+      // to reroll for a better number.
+      function updateRollButton() {
+        const btn = document.getElementById('rollBtn');
+        if (!currentState) { btn.disabled = true; return; }
+        const gameOver = currentState.status === 'finished';
+        const midDecision = currentState.lastDice !== null;
+        btn.disabled = rolling || gameOver || midDecision || !canActAsCurrentPlayer();
+      }
+
+      /* =========================================================================
+         SECTION: Local pass-and-play mode
+      ========================================================================= */
+      function startLocalMode() {
+        players = localPlayers;
+        game = new ENGINE.LudoGame(players.map((p) => p.color));
+        myColor = null; // anyone at the keyboard can act
+        syncFromGame();
+        showGameLayout();
+        renderAll();
+      }
+
+      /* =========================================================================
+         SECTION: Roll / move actions - same entry points for every mode.
+         Local & host apply directly to the engine; a joiner sends a request
+         over the data channel and waits for the host's authoritative reply.
+      ========================================================================= */
+      function requestRoll() {
+        if (rolling) return;
+        rolling = true;
+        updateRollButton();
+
+        // Always show a brief, satisfying spin - and it always lands on the
+        // real result once it arrives, whether that result is local or
+        // coming back from the host.
+        const spin = setInterval(() => renderDiceFace(1 + Math.floor(Math.random() * 6)), 70);
+
+        const finish = (result) => {
+          clearInterval(spin);
+          rolling = false;
+          lastKnownDice = result.dice;
+          if (result.turnPassed) {
+            logMessage(`${result.actedColor} rolled a ${result.dice}${result.forfeited ? ' (three sixes - forfeited)' : ' - no legal moves'}, turn passes to ${currentState.currentColor}.`);
+            pendingLegalMoves = [];
+          } else {
+            logMessage(`${result.actedColor} rolled a ${result.dice}.`);
+            pendingLegalMoves = result.legalMoves;
+          }
+          renderAll();
+        };
+
+        if (MODE === 'join') {
+          sendToHost({ type: 'roll' });
+          pendingJoinerRollFinish = finish;
+        } else {
+          const actedColor = game.currentColor;
+          setTimeout(() => {
+            const result = game.rollDice();
+            syncFromGame();
+            finish({ ...result, actedColor });
+            if (MODE === 'host') broadcastState(`${actedColor} rolled a ${result.dice}.`);
+          }, 550);
+        }
+      }
+
+      function requestMove(tokenIndex) {
+        if (MODE === 'join') {
+          sendToHost({ type: 'move', tokenIndex });
+          pendingLegalMoves = [];
+          renderTokens();
+          return;
+        }
+        const color = game.currentColor;
+        let result;
+        try {
+          result = game.moveToken(tokenIndex);
+        } catch (err) {
+          logMessage(`Error: ${err.message}`);
+          return;
+        }
+        syncFromGame();
+        pendingLegalMoves = [];
+
+        if (result.captured.length) logMessage(`${color} captured ${result.captured.map((c) => `${c.color}#${c.tokenIndex}`).join(', ')}!`);
+        if (result.reachedHome) logMessage(`${color} got a token home!`);
+        if (result.extraTurn) logMessage(`${color} goes again.`);
+
+        renderAll();
+        if (MODE === 'host') broadcastState();
+        if (result.finishedGame) showWinModal(result.winner);
+      }
+
+      let pendingJoinerRollFinish = null;
+
+      function showWinModal(winnerColor) {
+        const winner = players.find((p) => p.color === winnerColor);
+        document.getElementById('winMessage').textContent = `${winner ? winner.name : winnerColor} wins! 🎉`;
+        document.getElementById('winModal').style.display = 'flex';
+      }
+
+      document.getElementById('rollBtn').addEventListener('click', requestRoll);
+
+      function showGameLayout() {
+        document.getElementById('remoteLobby').style.display = 'none';
+        document.getElementById('gameLayout').style.display = 'flex';
+        buildStaticBoard();
+      }
+
+      /* =========================================================================
+         SECTION: Remote multiplayer over WebRTC (peer-to-peer, no backend).
+         The host runs the only LudoGame instance and is authoritative; every
+         joiner is a thin client that sends intents and renders whatever state
+         the host broadcasts. Connections are set up with a manual copy/paste
+         "invite code" / "answer code" exchange (standard for serverless WebRTC)
+         since there's no signaling server to relay this automatically.
+      ========================================================================= */
+      const RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+      function waitForIceGatheringComplete(pc) {
+        return new Promise((resolve) => {
+          if (pc.iceGatheringState === 'complete') { resolve(); return; }
+          function check() {
+            if (pc.iceGatheringState === 'complete') { pc.removeEventListener('icegatheringstatechange', check); resolve(); }
+          }
+          pc.addEventListener('icegatheringstatechange', check);
+          setTimeout(resolve, 3000); // don't hang forever if STUN is unreachable
+        });
+      }
+      function encodeSDP(desc) { return btoa(encodeURIComponent(JSON.stringify(desc))); }
+      function decodeSDP(code) { return JSON.parse(decodeURIComponent(atob(code.trim()))); }
+
+      const REMOTE_COLOR_ORDER = ['red', 'green', 'yellow', 'blue'];
+
+      // ---- HOST ----
+      let hostSlots = []; // { pc, dc, color, name, connected }
+
+      function nextAvailableColor() {
+        const used = new Set(['red', ...hostSlots.filter((s) => s.connected).map((s) => s.color)]);
+        return REMOTE_COLOR_ORDER.find((c) => !used.has(c));
+      }
+
+      function renderHostLobby(_stage, extra) {
+        const connected = hostSlots.filter((s) => s.connected);
+        const rosterHtml = [`<div class="roster-row"><span class="color-dot dot-red"></span><span>${escapeHtml(myDisplayName)} (you, host)</span></div>`]
+          .concat(connected.map((s) => `<div class="roster-row"><span class="color-dot dot-${s.color}"></span><span>${escapeHtml(s.name || 'Player')}</span></div>`))
+          .join('');
+        const total = 1 + connected.length;
+
+        document.getElementById('lobbyContent').innerHTML = `
+          <span class="status-pill">Hosting</span>
+          <h2>Host a Game</h2>
+          <p style="color:#57534e; font-size:0.9rem;">Share an invite code with each friend, then paste back the code they send you.</p>
+          <div class="lobby-step">
+            <label>Players (${total}/4)</label>
+            ${rosterHtml}
+          </div>
+          ${extra || ''}
+          <div class="lobby-step">
+            <button id="addPlayerBtn" ${total >= 4 ? 'disabled' : ''}>+ Invite another player</button>
+            <button class="copy-btn" id="startRemoteBtn" ${total < 2 ? 'disabled' : ''} style="width:100%;">Start Game (${total} players)</button>
+          </div>
+        `;
+        document.getElementById('addPlayerBtn').addEventListener('click', hostCreateInvite);
+        document.getElementById('startRemoteBtn').addEventListener('click', hostStartGame);
+      }
+
+      async function hostCreateInvite() {
+        const pc = new RTCPeerConnection(RTC_CONFIG);
+        const dc = pc.createDataChannel('ludo');
+        const slot = { pc, dc, color: null, name: null, connected: false };
+        wireHostDataChannel(slot);
+        hostSlots.push(slot);
+
+        renderHostLobby('', `<div class="lobby-step"><label>Generating invite code…</label></div>`);
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await waitForIceGatheringComplete(pc);
+        const code = encodeSDP(pc.localDescription);
+
+        renderHostLobby('', `
+          <div class="lobby-step">
+            <label>1. Send this invite code to your friend</label>
+            <textarea readonly id="inviteCodeBox">${code}</textarea>
+            <button class="copy-btn" onclick="copyText('inviteCodeBox')">Copy code</button>
+          </div>
+          <div class="lobby-step">
+            <label>2. Paste the answer code they send back</label>
+            <textarea id="answerCodeBox" placeholder="Paste their answer code here"></textarea>
+            <button class="copy-btn" id="submitAnswerBtn">Connect</button>
+          </div>
+        `);
+        document.getElementById('submitAnswerBtn').addEventListener('click', async () => {
+          const val = document.getElementById('answerCodeBox').value.trim();
+          if (!val) return;
+          try {
+            await slot.pc.setRemoteDescription(decodeSDP(val));
+          } catch (err) {
+            alert('That code did not look right. Double-check it was copied in full.');
+          }
+        });
+      }
+
+      function wireHostDataChannel(slot) {
+        slot.dc.addEventListener('open', () => {
+          slot.connected = true;
+          slot.color = nextAvailableColor();
+          slot.name = slot.name || `Player ${slot.color}`;
+          renderHostLobby();
+        });
+        slot.dc.addEventListener('message', (ev) => handleHostMessage(slot, JSON.parse(ev.data)));
+        slot.dc.addEventListener('close', () => { slot.connected = false; renderHostLobby(); });
+      }
+
+      function handleHostMessage(slot, msg) {
+        if (msg.type === 'setName') {
+          slot.name = String(msg.name || '').slice(0, 20) || `Player ${slot.color}`;
+          renderHostLobby();
+          return;
+        }
+        if (!game) return; // game hasn't started yet
+        if (slot.color !== game.currentColor) return; // ignore out-of-turn messages
+        if (msg.type === 'roll' && game.lastDice === null) {
+          const result = game.rollDice();
+          syncFromGame();
+          const note = `${slot.name} rolled a ${result.dice}${result.turnPassed ? ' - no legal moves, turn passes to ' + currentState.currentColor + '.' : '.'}`;
+          logMessage(note);
+          pendingLegalMoves = result.turnPassed ? [] : result.legalMoves;
+          lastKnownDice = result.dice;
+          renderAll();
+          broadcastState(note, result.dice);
+        } else if (msg.type === 'move' && game.lastDice !== null) {
+          try {
+            const result = game.moveToken(msg.tokenIndex);
+            syncFromGame();
+            let note = '';
+            if (result.captured.length) note = `${slot.name} captured ${result.captured.map((c) => `${c.color}#${c.tokenIndex}`).join(', ')}!`;
+            else if (result.reachedHome) note = `${slot.name} got a token home!`;
+            else if (result.extraTurn) note = `${slot.name} goes again.`;
+            if (note) logMessage(note);
+            pendingLegalMoves = [];
+            renderAll();
+            broadcastState(note || undefined);
+            if (result.finishedGame) showWinModal(result.winner);
+          } catch (err) { /* ignore illegal request */ }
+        }
+      }
+
+      function broadcastState(note, rolledDice) {
+        const payload = JSON.stringify({ type: 'state', state: currentState, players, legalMoves: pendingLegalMoves, note, rolledDice });
+        hostSlots.forEach((s) => { if (s.connected) s.dc.send(payload); });
+      }
+
+      function hostStartGame() {
+        const connected = hostSlots.filter((s) => s.connected);
+        players = [{ name: myDisplayName, color: 'red' }, ...connected.map((s) => ({ name: s.name, color: s.color }))];
+        myColor = 'red';
+        game = new ENGINE.LudoGame(players.map((p) => p.color));
+        syncFromGame();
+        const startPayload = JSON.stringify({ type: 'start', players, state: currentState });
+        connected.forEach((s) => s.dc.send(startPayload));
+        showGameLayout();
+        renderAll();
+      }
+
+      // ---- JOIN ----
+      let joinerPc = null, joinerDc = null;
+      let joinerAnswerCode = '';
+
+      function renderJoinLobby(step) {
+        if (step === 'enterCode') {
+          document.getElementById('lobbyContent').innerHTML = `
+            <span class="status-pill">Joining</span>
+            <h2>Join a Game</h2>
+            <div class="lobby-step">
+              <label>1. Paste the host's invite code</label>
+              <textarea id="offerCodeBox" placeholder="Paste the invite code here"></textarea>
+              <button class="copy-btn" id="genAnswerBtn" style="width:100%;">Generate answer code</button>
+            </div>
+          `;
+          document.getElementById('genAnswerBtn').addEventListener('click', async () => {
+            const val = document.getElementById('offerCodeBox').value.trim();
+            if (!val) return;
+            try {
+              await joinWithInvite(val);
+            } catch (err) {
+              alert('That code did not look right. Double-check it was copied in full.');
+            }
+          });
+        } else if (step === 'showAnswer') {
+          document.getElementById('lobbyContent').innerHTML = `
+            <span class="status-pill">Joining</span>
+            <h2>Join a Game</h2>
+            <div class="lobby-step">
+              <label>2. Send this answer code back to the host</label>
+              <textarea readonly id="answerOutBox">${joinerAnswerCode}</textarea>
+              <button class="copy-btn" onclick="copyText('answerOutBox')">Copy code</button>
+            </div>
+            <p style="color:#78716c; font-size:0.85rem;">Waiting for the host to connect and start the game…</p>
+          `;
+        }
+      }
+
+      async function joinWithInvite(offerCode) {
+        joinerPc = new RTCPeerConnection(RTC_CONFIG);
+        joinerPc.ondatachannel = (ev) => { joinerDc = ev.channel; wireJoinerDataChannel(); };
+
+        await joinerPc.setRemoteDescription(decodeSDP(offerCode));
+        const answer = await joinerPc.createAnswer();
+        await joinerPc.setLocalDescription(answer);
+        await waitForIceGatheringComplete(joinerPc);
+        joinerAnswerCode = encodeSDP(joinerPc.localDescription);
+        renderJoinLobby('showAnswer');
+      }
+
+      function wireJoinerDataChannel() {
+        joinerDc.addEventListener('open', () => {
+          sendToHost({ type: 'setName', name: myDisplayName });
+        });
+        joinerDc.addEventListener('message', (ev) => handleJoinerMessage(JSON.parse(ev.data)));
+      }
+
+      function sendToHost(msg) {
+        if (joinerDc && joinerDc.readyState === 'open') joinerDc.send(JSON.stringify(msg));
+      }
+
+      function handleJoinerMessage(msg) {
+        if (msg.type === 'start') {
+          players = msg.players;
+          currentState = msg.state;
+          const mine = players.find((p) => p.name === myDisplayName);
+          myColor = mine ? mine.color : players[players.length - 1].color;
+          pendingLegalMoves = [];
+          showGameLayout();
+          renderAll();
+        } else if (msg.type === 'state') {
+          currentState = msg.state;
+          players = msg.players;
+          pendingLegalMoves = myColor === currentState.currentColor ? (msg.legalMoves || []) : [];
+          if (typeof msg.rolledDice === 'number') lastKnownDice = msg.rolledDice;
+          if (pendingJoinerRollFinish) {
+            const finish = pendingJoinerRollFinish;
+            pendingJoinerRollFinish = null;
+            const turnPassed = currentState.lastDice === null && currentState.currentColor !== myColor;
+            finish({ dice: msg.rolledDice ?? currentState.lastDice, turnPassed, actedColor: myColor, legalMoves: pendingLegalMoves });
+          } else {
+            renderAll();
+            if (msg.note) logMessage(msg.note);
+          }
+        }
+      }
+
+      function copyText(id) {
+        const el = document.getElementById(id);
+        el.select();
+        document.execCommand('copy');
+      }
+      window.copyText = copyText;
+
+      /* =========================================================================
+         SECTION: Init
+      ========================================================================= */
+      if (MODE === 'local') {
+        startLocalMode();
+      } else if (MODE === 'host') {
+        document.getElementById('remoteLobby').style.display = 'block';
+        renderHostLobby();
+      } else if (MODE === 'join') {
+        document.getElementById('remoteLobby').style.display = 'block';
+        renderJoinLobby('enterCode');
+      }
+    </script>
+</body>
+</html>
